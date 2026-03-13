@@ -598,6 +598,47 @@ select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rg
     <div class="card-header"><h3>Monthly Observation Volume</h3></div>
     <div class="card-body"><div class="chart-wrap" style="height:200px"><canvas id="chart-ts-vol"></canvas></div></div>
   </div>
+
+  <!-- ── Nowcast KPIs ── -->
+  <div class="kpi-row" id="ts-kpi-row" style="display:none;"></div>
+
+  <!-- ── Projection Insights ── -->
+  <div class="card" id="ts-insights-card" style="display:none;border-top:3px solid var(--accent);">
+    <div class="card-header">
+      <h3>Projection Methodology & Limitations</h3>
+      <span style="font-size:11px;color:var(--ink-muted);font-weight:600;">3-MONTH NOWCAST HORIZON</span>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;">
+        <div>
+          <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">What the Projection Shows</div>
+          <p style="font-size:13px;color:var(--ink-light);line-height:1.6;">The dashed line extends the fair value estimate forward by extrapolating the current price level and its estimated momentum. The trend component decays by 50% each month — the model does not assume trends persist indefinitely. The widening confidence band reflects growing uncertainty as we move beyond observed data: each month without new observations adds noise that cannot be resolved.</p>
+        </div>
+        <div>
+          <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">What It Does Not Capture</div>
+          <p style="font-size:13px;color:var(--ink-light);line-height:1.6;">The current projection is purely momentum-based — it carries forward the direction and speed of recent price movement, but has no awareness of seasonal patterns, macroeconomic shifts, or supply/demand fundamentals. A sudden regime change (e.g. tariff imposition, commodity shock, or a large fleet liquidation) would not be anticipated by the model until new observations arrive.</p>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:20px;">
+        <div style="font-weight:700;font-size:14px;margin-bottom:12px;color:var(--ink);">Future Workstreams to Extend Forecast Horizon</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+          <div style="border-left:3px solid var(--accent);padding-left:12px;">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px;">Leading Indicators</div>
+            <p style="font-size:12px;color:var(--ink-light);line-height:1.5;">Integrating exogenous signals — steel/commodity indices, construction permits, PMI, interest rates — would give the model forward-looking inputs beyond pure price momentum. The state-space framework already has an exogenous input matrix wired for this; it requires identifying and sourcing the relevant indicators per equipment vertical.</p>
+          </div>
+          <div style="border-left:3px solid var(--green);padding-left:12px;">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px;">Seasonal Components</div>
+            <p style="font-size:12px;color:var(--ink-light);line-height:1.5;">Heavy equipment demand follows seasonal cycles — construction peaks in spring/summer, agricultural equipment around planting and harvest. Extending the state vector with a periodic component would allow the model to project "prices typically rise X% between March and June in this category," converting known cyclicality into tighter forecasts.</p>
+          </div>
+          <div style="border-left:3px solid var(--amber);padding-left:12px;">
+            <div style="font-weight:600;font-size:13px;margin-bottom:4px;">Adaptive Volatility</div>
+            <p style="font-size:12px;color:var(--ink-light);line-height:1.5;">The current model uses a fixed process noise parameter. During market dislocations (COVID supply shocks, rate hikes, trade policy shifts), true volatility spikes and the model underestimates uncertainty. Regime-switching or GARCH-style adaptive noise would produce more honest forecast bands during transitions and tighter bands during stable periods.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -988,28 +1029,119 @@ function loadTimeSeries() {
   const ts = DATA.timeseries[parseInt(idx)];
   document.getElementById('ts-title').textContent = `Fair Market Value Estimate: ${truncate(ts.category, 60)}`;
 
-  const dates = ts.dates;
+  const dates = [...ts.dates];
   const raw = ts.rawPrices.map(p => p < 0 ? null : p);
-  const kalman = ts.kalmanPrices;
-  const ciL = ts.ci95Lower;
-  const ciU = ts.ci95Upper;
+  const kalman = [...ts.kalmanPrices];
+  const ciL = [...ts.ci95Lower];
+  const ciU = [...ts.ci95Upper];
+  const T = kalman.length;
 
+  // ── Nowcast: 3-month projection from last Kalman state ──
+  const HORIZON = 3;
+  const PHI = 0.5;       // trend decay (matches kalmanPrice.m)
+  const Q0 = 1e-4;       // process noise (matches kalmanPrice.m)
+
+  // Estimate trend from last 2 smoothed log-prices
+  const logP_T = Math.log(kalman[T-1]);
+  const logP_Tm1 = Math.log(kalman[T-2]);
+  const delta_T = logP_T - logP_Tm1;
+
+  // Estimate last CI half-width in log-space
+  const sigma_T = (Math.log(ciU[T-1]) - Math.log(ciL[T-1])) / (2 * 1.96);
+
+  // Build forecast arrays (nulls for historical, values for projection)
+  const fcKalman = new Array(T).fill(null);
+  const fcCiU = new Array(T).fill(null);
+  const fcCiL = new Array(T).fill(null);
+  const fcCounts = [...ts.counts];
+
+  // Bridge: last historical point connects to first forecast point
+  fcKalman[T-1] = kalman[T-1];
+  fcCiU[T-1] = ciU[T-1];
+  fcCiL[T-1] = ciL[T-1];
+
+  let cumTrend = 0;
+  let lastDate = dates[T-1];
+  for (let h = 1; h <= HORIZON; h++) {
+    cumTrend += delta_T * Math.pow(PHI, h-1);
+    const logP_fc = logP_T + cumTrend;
+    // Variance grows: base + h steps of process noise + trend uncertainty contribution
+    const sigma_fc = Math.sqrt(sigma_T * sigma_T + h * Q0 * (1 + 2 * h * Q0));
+    // Additional fan-out: ~12% per month to reflect honest uncertainty growth
+    const fanFactor = 1 + 0.12 * h;
+    const sigmaAdj = sigma_fc * fanFactor;
+
+    fcKalman.push(Math.exp(logP_fc));
+    fcCiU.push(Math.exp(logP_fc + 1.96 * sigmaAdj));
+    fcCiL.push(Math.exp(logP_fc - 1.96 * sigmaAdj));
+    fcCounts.push(0);
+
+    // Generate next month label
+    const [yr, mo] = lastDate.split('-').map(Number);
+    const nmo = mo === 12 ? 1 : mo + 1;
+    const nyr = mo === 12 ? yr + 1 : yr;
+    const nextLabel = nyr + '-' + String(nmo).padStart(2, '0');
+    dates.push(nextLabel);
+    kalman.push(null);
+    ciU.push(null);
+    ciL.push(null);
+    raw.push(null);
+    lastDate = nextLabel;
+  }
+
+  // ── Nowcast KPIs ──
+  const lastPrice = ts.kalmanPrices[T-1];
+  const fc3Price = fcKalman[T + HORIZON - 1];
+  const fc3Change = ((fc3Price / lastPrice) - 1) * 100;
+  const fc3CiWidth = ((fcCiU[T + HORIZON - 1] / fcCiL[T + HORIZON - 1]) - 1) * 100;
+  const trendDir = delta_T > 0.005 ? '↑ Appreciating' : delta_T < -0.005 ? '↓ Depreciating' : '→ Stable';
+  const trendColor = delta_T > 0.005 ? 'var(--green)' : delta_T < -0.005 ? 'var(--red)' : 'var(--ink)';
+
+  const tsKpiRow = document.getElementById('ts-kpi-row');
+  tsKpiRow.style.display = '';
+  tsKpiRow.innerHTML = [
+    { label:'Current FMV', value:'$'+fmt(Math.round(lastPrice)), sub:dates[T-1] },
+    { label:'3-Month Projection', value:'$'+fmt(Math.round(fc3Price)), sub:(fc3Change>=0?'+':'')+fc3Change.toFixed(1)+'% from current' },
+    { label:'Trend Signal', value:trendDir, sub:'Monthly momentum: '+(delta_T*100).toFixed(1)+'%', color:trendColor },
+    { label:'Forecast CI Width', value:fc3CiWidth.toFixed(0)+'%', sub:'95% band at 3 months' },
+  ].map(k => `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-value" style="${k.color?'color:'+k.color:''}">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+
+  // Show insights card
+  document.getElementById('ts-insights-card').style.display = '';
+
+  // ── Main chart with forecast overlay ──
   if (tsChart) tsChart.destroy();
   tsChart = new Chart(document.getElementById('chart-ts'), {
     type:'line',
     data:{
       labels: dates,
       datasets:[
+        // Historical CI band
         { label:'95% CI Upper', data:ciU, borderColor:'transparent', backgroundColor:'#0057b818', fill:'+1', pointRadius:0, tension:0.3 },
         { label:'95% CI Lower', data:ciL, borderColor:'transparent', backgroundColor:'#0057b818', fill:false, pointRadius:0, tension:0.3 },
+        // Historical fair value
         { label:'Fair Value Estimate', data:kalman, borderColor:'#0057b8', borderWidth:2.5, pointRadius:0, tension:0.3, fill:false },
+        // Observed prices
         { label:'Observed Price', data:raw, borderColor:'transparent', backgroundColor:'#1a875488', pointRadius:4, pointStyle:'circle', showLine:false },
+        // Forecast CI band (wider, orange-tinted)
+        { label:'Forecast CI Upper', data:fcCiU, borderColor:'transparent', backgroundColor:'#b8860b18', fill:'+1', pointRadius:0, tension:0.3 },
+        { label:'Forecast CI Lower', data:fcCiL, borderColor:'transparent', backgroundColor:'#b8860b18', fill:false, pointRadius:0, tension:0.3 },
+        // Forecast line (dashed)
+        { label:'3-Month Projection', data:fcKalman, borderColor:'#b8860b', borderWidth:2.5, borderDash:[6,4], pointRadius:0, tension:0.3, fill:false },
       ]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
-      scales:{ y:{title:{display:true,text:'Price ($)',font:{size:11}},grid:{color:'#f0f0f0'}}, x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}} },
-      plugins:{ legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:16}} },
+      scales:{ y:{title:{display:true,text:'Price ($)',font:{size:11}},grid:{color:'#f0f0f0'}}, x:{grid:{display:false},ticks:{maxTicksLimit:14,font:{size:10}}} },
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:16,
+          filter: function(item) {
+            // Hide internal CI datasets from legend
+            return !item.text.includes('CI Upper') && !item.text.includes('CI Lower');
+          }
+        }},
+        annotation: {}
+      },
       interaction:{mode:'index',intersect:false}
     }
   });
@@ -1019,12 +1151,17 @@ function loadTimeSeries() {
     type:'bar',
     data:{
       labels:dates,
-      datasets:[{data:ts.counts, backgroundColor:'#0057b833', borderColor:'#0057b8', borderWidth:1, borderRadius:2}]
+      datasets:[{
+        data:fcCounts,
+        backgroundColor: fcCounts.map((c,i) => i >= T ? '#b8860b22' : '#0057b833'),
+        borderColor: fcCounts.map((c,i) => i >= T ? '#b8860b' : '#0057b8'),
+        borderWidth:1, borderRadius:2
+      }]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{legend:{display:false}},
-      scales:{y:{beginAtZero:true,title:{display:true,text:'Transactions',font:{size:11}},grid:{color:'#f0f0f0'}},x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}}}
+      scales:{y:{beginAtZero:true,title:{display:true,text:'Transactions',font:{size:11}},grid:{color:'#f0f0f0'}},x:{grid:{display:false},ticks:{maxTicksLimit:14,font:{size:10}}}}
     }
   });
 }
