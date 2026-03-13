@@ -10,9 +10,9 @@
   "tier1Count": 25,
   "tier2Count": 25,
   "sources": {
-    "Bidspotter": 33439,
-    "MnA": 22968,
-    "SurplusRecord": 35122
+    "AuctionPlatform": 33439,
+    "TransactionRecords": 22968,
+    "DealerListings": 35122
   },
   "topCategoryEffects": [
     {

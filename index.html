@@ -317,7 +317,7 @@ select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rg
 <div class="container">
   <div class="section-label">Executive Summary</div>
   <div class="section-title">Portfolio Valuation Framework</div>
-  <div class="section-subtitle">State-space pricing model applied to secondary market industrial equipment inventory</div>
+  <div class="section-subtitle">Proprietary multi-stage pricing model applied to secondary market industrial equipment inventory</div>
 
   <div class="kpi-row" id="kpi-row"></div>
 
@@ -344,19 +344,29 @@ select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rg
   </div>
 
   <div class="card">
-    <div class="card-header"><h3>How the Model Works</h3></div>
+    <div class="card-header"><h3>Approach</h3></div>
     <div class="card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
       <div>
-        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">① Cross-Sectional Regression</div>
-        <p style="font-size:13px;color:var(--ink-light);">Weighted least squares decomposes log-price into category, manufacturer brand, condition, and age effects. Observations are weighted by data quality — auction hammer prices carry 6× the weight of listing asks.</p>
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">① Exposure Decomposition</div>
+        <p style="font-size:13px;color:var(--ink-light);">A weighted regression decomposes each observed price into its key drivers — equipment category, manufacturer brand premium, physical condition, and asset age. Data sources are weighted by reliability so that closed transactions anchor the model while indicative prices provide coverage.</p>
       </div>
       <div>
-        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">② Whittaker Smoothing</div>
-        <p style="font-size:13px;color:var(--ink-light);">A modified Whittaker smoother extracts the underlying price trend from noisy, irregularly-spaced observations. Asymmetric penalties allow recent data to flex while anchoring historical levels.</p>
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">② Trend Extraction</div>
+        <p style="font-size:13px;color:var(--ink-light);">A proprietary smoothing layer separates genuine price movement from observation noise across irregularly-spaced data. The method adapts its sensitivity — placing more trust in recent, well-observed periods while stabilising estimates where data is sparse.</p>
       </div>
       <div>
-        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">③ Kalman Fair Value</div>
-        <p style="font-size:13px;color:var(--ink-light);">A state-space Kalman filter with RTS smoother produces the final fair market value estimate with 95% confidence intervals, tracking both level and trend of the asset category.</p>
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">③ Fair Value Estimation</div>
+        <p style="font-size:13px;color:var(--ink-light);">State estimation techniques produce a final fair market value for each asset category, complete with 95% confidence intervals. The model continuously tracks both the price level and its momentum, updating as new market observations arrive.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="border-left:3px solid var(--accent);">
+    <div class="card-body" style="display:flex;align-items:flex-start;gap:16px;">
+      <div style="font-size:24px;">📋</div>
+      <div>
+        <div style="font-weight:600;margin-bottom:4px;">Engagement Scope</div>
+        <p style="font-size:13px;color:var(--ink-light);margin-bottom:0;">This dashboard presents initial model outputs for discussion. Full implementation — including custom factor design, hold-out validation, sensitivity analysis, and integration with your internal systems — is available through our consulting engagement. The methodology is calibrated to your specific inventory mix and can incorporate additional data sources as they become available.</p>
       </div>
     </div>
   </div>
@@ -368,7 +378,36 @@ select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rg
 <div class="container">
   <div class="section-label">Data Quality Assessment</div>
   <div class="section-title">Liquidity & Richness Analysis</div>
-  <div class="section-subtitle">Six-dimensional scoring ranks each category's suitability for statistical pricing — higher score = more modelable</div>
+  <div class="section-subtitle">Not all inventory is equally modelable. We score each category across six dimensions of data richness to identify where the model has the strongest statistical foundation — and where additional data acquisition would have the highest ROI.</div>
+
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+      <div style="border-left:3px solid #1e40af;padding-left:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">📊 Observation Depth</div>
+        <p style="font-size:12px;color:var(--ink-light);">How many comparable transactions exist? Categories with deeper pools yield more stable estimates and tighter confidence intervals. We measure this on a log-scale because doubling from 100 to 200 obs matters more than 1,000 to 1,100.</p>
+      </div>
+      <div style="border-left:3px solid #0057b8;padding-left:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">🔀 Source Diversity</div>
+        <p style="font-size:12px;color:var(--ink-light);">Do we observe prices from multiple channels — auctions, dealer listings, closed transactions? Categories seen from only one source may carry systematic bias. Shannon entropy quantifies how evenly price discovery is spread across channels.</p>
+      </div>
+      <div style="border-left:3px solid #2563eb;padding-left:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">📅 Temporal Coverage</div>
+        <p style="font-size:12px;color:var(--ink-light);">Are observations spread across time, or clustered in a single batch? Dense temporal coverage lets the model detect trends and seasonality. Sparse time-series get wider confidence bands because we are extrapolating between observations.</p>
+      </div>
+      <div style="border-left:3px solid #1a8754;padding-left:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">📈 Price Coherence</div>
+        <p style="font-size:12px;color:var(--ink-light);">Do similar assets trade at similar prices? A high signal-to-noise ratio means the category has an identifiable "fair value" the model can latch onto. Low coherence may indicate the category lumps together heterogeneous equipment.</p>
+      </div>
+      <div style="border-left:3px solid #b8860b;padding-left:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">🏭 Manufacturer Mix</div>
+        <p style="font-size:12px;color:var(--ink-light);">Is the category dominated by one OEM, or spread across many brands? A diversified manufacturer mix means brand effects can be estimated reliably — critical for understanding why a Caterpillar commands a premium over a lesser-known brand.</p>
+      </div>
+      <div style="border-left:3px solid #7c3aed;padding-left:12px;">
+        <div style="font-weight:600;font-size:13px;margin-bottom:4px;">🔧 Condition Spectrum</div>
+        <p style="font-size:12px;color:var(--ink-light);">Do we see new, used, and refurbished units? Full condition coverage lets the model estimate the depreciation curve. Categories where everything is listed as "unknown" condition lose this pricing lever entirely.</p>
+      </div>
+    </div>
+  </div>
 
   <div class="card">
     <div class="card-header">
@@ -472,7 +511,7 @@ select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rg
 <div class="container">
   <div class="section-label">Temporal Analysis</div>
   <div class="section-title">Fair Value Trends</div>
-  <div class="section-subtitle">Kalman-filtered fair market value estimates with 95% confidence intervals</div>
+  <div class="section-subtitle">State estimation techniques produce a continuously-updated fair market value for each category, with 95% confidence intervals that reflect data quality and observation density</div>
 
   <div style="margin-bottom:20px;">
     <select id="ts-select" onchange="loadTimeSeries()"></select>
@@ -529,7 +568,7 @@ function initDashboard() {
   const kpis = [
     { label:'Total Assets', value:fmt(s.totalAssets), sub:'Across all sources' },
     { label:'Categories Scored', value:s.scoredCategories, sub:`of ${s.totalCategories} total` },
-    { label:'Model R²', value:s.globalR2.toFixed(3), sub:'Global cross-sectional' },
+    { label:'Model Fit (R²)', value:s.globalR2.toFixed(3), sub:'Variance explained' },
     { label:'Tier 1 Categories', value:s.tier1Count, sub:'Highest data quality' },
     { label:'Manufacturers', value:fmt(s.totalManufacturers), sub:'Unique OEM brands' },
     { label:'Condition Effect', value:(Math.exp(s.gammaCondition * 0.5) * 100 - 100).toFixed(1) + '%', sub:'New vs Used premium' },
@@ -594,7 +633,7 @@ function initDashboard() {
     options: {
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false} },
-      scales:{ x:{title:{display:true,text:'Log-price effect (α)',font:{size:11}}, grid:{color:'#f0f0f0'}}, y:{ticks:{font:{size:10}}, grid:{display:false}} }
+      scales:{ x:{title:{display:true,text:'Relative value premium',font:{size:11}}, grid:{color:'#f0f0f0'}}, y:{ticks:{font:{size:10}}, grid:{display:false}} }
     }
   });
 
@@ -615,7 +654,7 @@ function initDashboard() {
     options: {
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{display:false} },
-      scales:{ x:{title:{display:true,text:'Brand premium/discount (β)',font:{size:11}}, grid:{color:'#f0f0f0'}}, y:{ticks:{font:{size:10}}, grid:{display:false}} }
+      scales:{ x:{title:{display:true,text:'Brand premium / discount',font:{size:11}}, grid:{color:'#f0f0f0'}}, y:{ticks:{font:{size:10}}, grid:{display:false}} }
     }
   });
 
@@ -806,7 +845,7 @@ let tsChart = null, tsVolChart = null;
 function initTimeSeries() {
   const sel = document.getElementById('ts-select');
   sel.innerHTML = '<option value="">— Select a category —</option>' +
-    DATA.timeseries.map((ts,i) => `<option value="${i}">${truncate(ts.category,70)} [${ts.tier.replace('_',' ')}]</option>`).join('');
+    DATA.timeseries.map((ts,i) => `<option value="${i}">${truncate(ts.category,60)} — ${ts.nObs||''} obs [${ts.tier.replace('_',' ')}]</option>`).join('');
 }
 
 function loadTimeSeries() {
@@ -814,7 +853,7 @@ function loadTimeSeries() {
   if (idx === '') return;
 
   const ts = DATA.timeseries[parseInt(idx)];
-  document.getElementById('ts-title').textContent = `Kalman Fair Value: ${truncate(ts.category, 60)}`;
+  document.getElementById('ts-title').textContent = `Fair Market Value Estimate: ${truncate(ts.category, 60)}`;
 
   const dates = ts.dates;
   const raw = ts.rawPrices.map(p => p < 0 ? null : p);
@@ -830,7 +869,7 @@ function loadTimeSeries() {
       datasets:[
         { label:'95% CI Upper', data:ciU, borderColor:'transparent', backgroundColor:'#0057b818', fill:'+1', pointRadius:0, tension:0.3 },
         { label:'95% CI Lower', data:ciL, borderColor:'transparent', backgroundColor:'#0057b818', fill:false, pointRadius:0, tension:0.3 },
-        { label:'Kalman FMV', data:kalman, borderColor:'#0057b8', borderWidth:2.5, pointRadius:0, tension:0.3, fill:false },
+        { label:'Fair Value Estimate', data:kalman, borderColor:'#0057b8', borderWidth:2.5, pointRadius:0, tension:0.3, fill:false },
         { label:'Observed Price', data:raw, borderColor:'transparent', backgroundColor:'#1a875488', pointRadius:4, pointStyle:'circle', showLine:false },
       ]
     },
