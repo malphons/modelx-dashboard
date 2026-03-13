@@ -1,0 +1,156 @@
+{
+  "totalAssets": 91529,
+  "totalCategories": 381,
+  "totalManufacturers": 4570,
+  "scoredCategories": 126,
+  "globalR2": 0.9061,
+  "globalRMSE": 1.9849,
+  "gammaCondition": -0.0636,
+  "deltaAge": 9.0251,
+  "tier1Count": 25,
+  "tier2Count": 25,
+  "sources": {
+    "Bidspotter": 33439,
+    "MnA": 22968,
+    "SurplusRecord": 35122
+  },
+  "topCategoryEffects": [
+    {
+      "category": "Tender Offer",
+      "effect": 10.4721
+    },
+    {
+      "category": "",
+      "effect": 9.4599
+    },
+    {
+      "category": "Management buyout",
+      "effect": 8.7275
+    },
+    {
+      "category": "Divest unit",
+      "effect": 8.5847
+    },
+    {
+      "category": "Info Unavailable",
+      "effect": 8.5629
+    },
+    {
+      "category": "Bankruptcy sale",
+      "effect": 7.4397
+    },
+    {
+      "category": "Asset sale",
+      "effect": 7.0555
+    },
+    {
+      "category": "Articulated Dump Trucks, Asphalt Pavers, Cold Milling Machines / Planers, Combine Harvesters, Compaction Rollers",
+      "effect": 2.9426
+    },
+    {
+      "category": "Excavators, Dozers, Dump Trucks, Compactors, Loaders, Tractors, Scrapers",
+      "effect": 2.6889
+    },
+    {
+      "category": "Articulated Dump Trucks, Asphalt Distributors, Combination Rollers, Dozers, Wheel, Dump Trucks, Excavators, Track",
+      "effect": 2.3156
+    },
+    {
+      "category": "Air Compressors, Portable, Articulated Dump Trucks, Compaction Rollers, Double Drum for Asphalt",
+      "effect": 2.2164
+    },
+    {
+      "category": "Excavators, Wheel, Articulated Dump Trucks, Asphalt Pavers, Backhoe Loaders",
+      "effect": 2.1165
+    },
+    {
+      "category": "Combine Harvesters, Combine Headers, Disc Rippers and Tillage Equipment, Hay Balers and Forage Equipment, Self Propelled Sprayer",
+      "effect": 2.0413
+    },
+    {
+      "category": "HVAC Equipment, Snow Removal Attachments, Fuel Tanks",
+      "effect": 1.9904
+    },
+    {
+      "category": "Excavators, Wheel, Arm Attachments, Articulated Dump Trucks, Backhoe Loaders",
+      "effect": 1.9687
+    }
+  ],
+  "topMfgEffects": [
+    {
+      "manufacturer": "Valenite",
+      "effect": -3.4218,
+      "obsCount": 14
+    },
+    {
+      "manufacturer": "Voortman",
+      "effect": 3.1755,
+      "obsCount": 6
+    },
+    {
+      "manufacturer": "Dmg",
+      "effect": 3.0802,
+      "obsCount": 16
+    },
+    {
+      "manufacturer": "Clearing",
+      "effect": 3.0702,
+      "obsCount": 5
+    },
+    {
+      "manufacturer": "Crydom",
+      "effect": -2.9248,
+      "obsCount": 5
+    },
+    {
+      "manufacturer": "Sca",
+      "effect": -2.8992,
+      "obsCount": 15
+    },
+    {
+      "manufacturer": "Ficep",
+      "effect": 2.8546,
+      "obsCount": 9
+    },
+    {
+      "manufacturer": "Manesty",
+      "effect": 2.7709,
+      "obsCount": 6
+    },
+    {
+      "manufacturer": "Tsd",
+      "effect": -2.7413,
+      "obsCount": 6
+    },
+    {
+      "manufacturer": "Dumont",
+      "effect": -2.7236,
+      "obsCount": 12
+    },
+    {
+      "manufacturer": "Tsugami",
+      "effect": 2.6722,
+      "obsCount": 18
+    },
+    {
+      "manufacturer": "Sutherland",
+      "effect": 2.6395,
+      "obsCount": 5
+    },
+    {
+      "manufacturer": "Makino",
+      "effect": 2.6256,
+      "obsCount": 19
+    },
+    {
+      "manufacturer": "Crouse-Hinds",
+      "effect": -2.597,
+      "obsCount": 20
+    },
+    {
+      "manufacturer": "Twin Control",
+      "effect": 2.5969,
+      "obsCount": 5
+    }
+  ]
+}

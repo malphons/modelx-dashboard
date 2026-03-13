@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ModelX · Secondary Market Pricing</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:        #1a1a2e;
+  --ink-light:  #4a4a5e;
+  --ink-muted:  #8e8ea0;
+  --bg:         #f8f9fb;
+  --card:       #ffffff;
+  --accent:     #0057b8;
+  --accent-light:#e8f0fe;
+  --green:      #1a8754;
+  --green-bg:   #e6f4ed;
+  --amber:      #b8860b;
+  --amber-bg:   #fef3cd;
+  --red:        #c0392b;
+  --red-bg:     #fde8e8;
+  --border:     #e5e7eb;
+  --shadow:     0 1px 3px rgba(0,0,0,0.06);
+  --shadow-lg:  0 4px 16px rgba(0,0,0,0.08);
+  --radius:     8px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── Top Nav ─────────────────────────────────────────── */
+.topbar {
+  background: var(--ink);
+  color: #fff;
+  padding: 0 32px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.topbar .logo {
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.3px;
+}
+.topbar .logo span { color: var(--accent); font-weight: 300; }
+.topbar .nav-links { display:flex; gap:24px; }
+.topbar .nav-links a {
+  color: #b0b0c0;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.topbar .nav-links a:hover, .topbar .nav-links a.active { color: #fff; }
+
+/* ── Layout ──────────────────────────────────────────── */
+.container { max-width: 1320px; margin: 0 auto; padding: 24px 32px; }
+
+.section-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--ink-muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  margin-bottom: 4px;
+}
+.section-subtitle {
+  font-size: 13px;
+  color: var(--ink-light);
+  margin-bottom: 20px;
+}
+
+/* ── KPI Cards ───────────────────────────────────────── */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+@media (max-width:1100px) { .kpi-row { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width:600px)  { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+.kpi {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.kpi .kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--ink-muted);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.kpi .kpi-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+}
+.kpi .kpi-sub {
+  font-size: 12px;
+  color: var(--ink-muted);
+  margin-top: 4px;
+}
+
+/* ── Cards ───────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.card-header h3 {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+.card-body { padding: 20px; }
+
+/* ── Tier Badges ─────────────────────────────────────── */
+.tier { display:inline-block; padding:2px 10px; border-radius:12px; font-size:11px; font-weight:600; letter-spacing:0.3px; }
+.tier-1 { background:#dbeafe; color:#1e40af; }
+.tier-2 { background:#e6f4ed; color:#166534; }
+.tier-3 { background:#fef3cd; color:#92400e; }
+.tier-4 { background:#fde8e8; color:#991b1b; }
+.tier-5 { background:#f3f4f6; color:#6b7280; }
+
+/* ── Grid layouts ────────────────────────────────────── */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
+.grid-2-1 { display:grid; grid-template-columns:2fr 1fr; gap:20px; }
+
+@media (max-width:900px) {
+  .grid-2, .grid-3, .grid-2-1 { grid-template-columns:1fr; }
+}
+
+/* ── Tables ──────────────────────────────────────────── */
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th {
+  text-align:left;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.6px;
+  color:var(--ink-muted);
+  font-weight:600;
+  padding:8px 12px;
+  border-bottom:2px solid var(--border);
+  white-space:nowrap;
+}
+td {
+  padding:10px 12px;
+  border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+tr:last-child td { border-bottom:none; }
+tr:hover td { background:#f9fafb; }
+.text-right { text-align:right; }
+.text-mono { font-family:'SF Mono','Fira Code',monospace; font-size:12px; }
+
+/* ── Selects ─────────────────────────────────────────── */
+select {
+  appearance:none;
+  background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%234a4a5e' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 10px center;
+  border:1px solid var(--border);
+  border-radius:6px;
+  padding:8px 32px 8px 12px;
+  font-size:13px;
+  font-family:inherit;
+  color:var(--ink);
+  cursor:pointer;
+  min-width:280px;
+}
+select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,87,184,0.1); }
+
+/* ── Radar / heatmap ─────────────────────────────────── */
+.heatmap-bar {
+  display:flex;
+  gap:2px;
+  align-items:flex-end;
+  height:28px;
+}
+.heatmap-cell {
+  flex:1;
+  border-radius:3px;
+  min-width:18px;
+  position:relative;
+  cursor:default;
+}
+.heatmap-cell:hover::after {
+  content:attr(data-label);
+  position:absolute;
+  bottom:calc(100% + 4px);
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--ink);
+  color:#fff;
+  padding:2px 8px;
+  border-radius:4px;
+  font-size:10px;
+  white-space:nowrap;
+  z-index:10;
+}
+
+/* ── Chart containers ────────────────────────────────── */
+.chart-wrap { position:relative; width:100%; }
+.chart-wrap canvas { width:100% !important; }
+
+/* ── Scroll sections ─────────────────────────────────── */
+.view { display:none; }
+.view.active { display:block; }
+
+/* ── Footer ──────────────────────────────────────────── */
+.footer {
+  text-align:center;
+  padding:32px 20px;
+  color:var(--ink-muted);
+  font-size:12px;
+  border-top:1px solid var(--border);
+  margin-top:40px;
+}
+
+/* ── Price pill ──────────────────────────────────────── */
+.price-pill {
+  display:inline-block;
+  padding:3px 10px;
+  border-radius:6px;
+  font-weight:600;
+  font-size:13px;
+}
+.price-pill.actual { background:var(--accent-light); color:var(--accent); }
+.price-pill.model  { background:var(--green-bg); color:var(--green); }
+
+/* ── Score bar ───────────────────────────────────────── */
+.score-bar {
+  width:100%;
+  height:6px;
+  background:#e5e7eb;
+  border-radius:3px;
+  overflow:hidden;
+  margin-top:4px;
+}
+.score-bar-fill {
+  height:100%;
+  border-radius:3px;
+  background:linear-gradient(90deg, #0057b8, #1a8754);
+  transition:width 0.4s ease;
+}
+
+/* ── Loading ─────────────────────────────────────────── */
+.loading {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:60px 20px;
+  color:var(--ink-muted);
+  font-size:14px;
+}
+.spinner {
+  width:20px; height:20px;
+  border:2px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin 0.6s linear infinite;
+  margin-right:10px;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ TOP NAV -->
+<div class="topbar">
+  <div class="logo">Model<span>X</span> · Secondary Market Pricing</div>
+  <div class="nav-links">
+    <a onclick="showView('overview')" class="active" id="nav-overview">Overview</a>
+    <a onclick="showView('liquidity')" id="nav-liquidity">Liquidity Analysis</a>
+    <a onclick="showView('pricing')" id="nav-pricing">Pricing Explorer</a>
+    <a onclick="showView('timeseries')" id="nav-timeseries">Fair Value Trends</a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ OVERVIEW -->
+<div class="view active" id="view-overview">
+<div class="container">
+  <div class="section-label">Executive Summary</div>
+  <div class="section-title">Portfolio Valuation Framework</div>
+  <div class="section-subtitle">State-space pricing model applied to secondary market industrial equipment inventory</div>
+
+  <div class="kpi-row" id="kpi-row"></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h3>Data Coverage by Source</h3></div>
+      <div class="card-body"><div class="chart-wrap" style="height:260px"><canvas id="chart-sources"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Tier Distribution</h3></div>
+      <div class="card-body"><div class="chart-wrap" style="height:260px"><canvas id="chart-tiers"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h3>Top Category Value Premiums</h3></div>
+      <div class="card-body"><div class="chart-wrap" style="height:300px"><canvas id="chart-cat-effects"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Top Brand Effects</h3></div>
+      <div class="card-body"><div class="chart-wrap" style="height:300px"><canvas id="chart-mfg-effects"></canvas></div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>How the Model Works</h3></div>
+    <div class="card-body" style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+      <div>
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">① Cross-Sectional Regression</div>
+        <p style="font-size:13px;color:var(--ink-light);">Weighted least squares decomposes log-price into category, manufacturer brand, condition, and age effects. Observations are weighted by data quality — auction hammer prices carry 6× the weight of listing asks.</p>
+      </div>
+      <div>
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">② Whittaker Smoothing</div>
+        <p style="font-size:13px;color:var(--ink-light);">A modified Whittaker smoother extracts the underlying price trend from noisy, irregularly-spaced observations. Asymmetric penalties allow recent data to flex while anchoring historical levels.</p>
+      </div>
+      <div>
+        <div style="font-weight:600;margin-bottom:8px;color:var(--accent);">③ Kalman Fair Value</div>
+        <p style="font-size:13px;color:var(--ink-light);">A state-space Kalman filter with RTS smoother produces the final fair market value estimate with 95% confidence intervals, tracking both level and trend of the asset category.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ LIQUIDITY -->
+<div class="view" id="view-liquidity">
+<div class="container">
+  <div class="section-label">Data Quality Assessment</div>
+  <div class="section-title">Liquidity & Richness Analysis</div>
+  <div class="section-subtitle">Six-dimensional scoring ranks each category's suitability for statistical pricing — higher score = more modelable</div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Liquidity Scoring by Category</h3>
+      <select id="tier-filter" onchange="filterLiquidityTable()">
+        <option value="all">All Tiers</option>
+        <option value="Tier1_Liquid">Tier 1 — Liquid</option>
+        <option value="Tier2_Rich">Tier 2 — Rich</option>
+        <option value="Tier3_Moderate">Tier 3 — Moderate</option>
+        <option value="Tier4_Thin">Tier 4 — Thin</option>
+        <option value="Tier5_Sparse">Tier 5 — Sparse</option>
+      </select>
+    </div>
+    <div class="card-body" style="overflow-x:auto;">
+      <table id="liq-table">
+        <thead>
+          <tr>
+            <th style="min-width:300px">Category</th>
+            <th class="text-right">N</th>
+            <th>Tier</th>
+            <th class="text-right">Score</th>
+            <th style="min-width:180px">Dimension Profile</th>
+            <th class="text-right">Depth</th>
+            <th class="text-right">Entropy</th>
+            <th class="text-right">Temporal</th>
+            <th class="text-right">SNR</th>
+            <th class="text-right">Mfg Div</th>
+            <th class="text-right">Cond</th>
+          </tr>
+        </thead>
+        <tbody id="liq-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h3>Score Distribution</h3></div>
+      <div class="card-body"><div class="chart-wrap" style="height:280px"><canvas id="chart-liq-dist"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Depth vs. Score</h3></div>
+      <div class="card-body"><div class="chart-wrap" style="height:280px"><canvas id="chart-depth-score"></canvas></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ PRICING -->
+<div class="view" id="view-pricing">
+<div class="container">
+  <div class="section-label">Asset-Level Valuation</div>
+  <div class="section-title">Pricing Explorer</div>
+  <div class="section-subtitle">Select a category to view individual asset valuations — categories sorted by liquidity score</div>
+
+  <div style="margin-bottom:20px;">
+    <select id="cat-select" onchange="loadCategoryItems()" style="min-width:500px;"></select>
+  </div>
+
+  <div class="kpi-row" id="cat-kpi-row"></div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3>Inventory Items</h3>
+      <span id="item-count" style="font-size:12px;color:var(--ink-muted)"></span>
+    </div>
+    <div class="card-body" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:280px">Asset</th>
+            <th>Manufacturer</th>
+            <th>Condition</th>
+            <th>Source</th>
+            <th class="text-right">Market Price</th>
+            <th class="text-right">Model Estimate</th>
+            <th class="text-right">Δ%</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="items-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h3>Actual vs. Model Price</h3></div>
+      <div class="card-body"><div class="chart-wrap" style="height:300px"><canvas id="chart-scatter"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Pricing Error Distribution</h3></div>
+      <div class="card-body"><div class="chart-wrap" style="height:300px"><canvas id="chart-error-hist"></canvas></div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TIME SERIES -->
+<div class="view" id="view-timeseries">
+<div class="container">
+  <div class="section-label">Temporal Analysis</div>
+  <div class="section-title">Fair Value Trends</div>
+  <div class="section-subtitle">Kalman-filtered fair market value estimates with 95% confidence intervals</div>
+
+  <div style="margin-bottom:20px;">
+    <select id="ts-select" onchange="loadTimeSeries()"></select>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3 id="ts-title">Select a category above</h3></div>
+    <div class="card-body"><div class="chart-wrap" style="height:380px"><canvas id="chart-ts"></canvas></div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h3>Monthly Observation Volume</h3></div>
+    <div class="card-body"><div class="chart-wrap" style="height:200px"><canvas id="chart-ts-vol"></canvas></div></div>
+  </div>
+</div>
+</div>
+
+<div class="footer">ModelX Secondary Market Pricing Framework · Confidential</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  DATA LOADING
+// ═══════════════════════════════════════════════════════════════════
+let DATA = {};
+
+async function loadData() {
+  const [summary, liquidity, items, timeseries] = await Promise.all([
+    fetch('summary.json').then(r => r.json()),
+    fetch('liquidity.json').then(r => r.json()),
+    fetch('items.json').then(r => r.json()),
+    fetch('timeseries.json').then(r => r.json()),
+  ]);
+  DATA = { summary, liquidity, items, timeseries };
+  initDashboard();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  VIEW ROUTING
+// ═══════════════════════════════════════════════════════════════════
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  OVERVIEW
+// ═══════════════════════════════════════════════════════════════════
+function initDashboard() {
+  const s = DATA.summary;
+
+  // KPIs
+  const kpis = [
+    { label:'Total Assets', value:fmt(s.totalAssets), sub:'Across all sources' },
+    { label:'Categories Scored', value:s.scoredCategories, sub:`of ${s.totalCategories} total` },
+    { label:'Model R²', value:s.globalR2.toFixed(3), sub:'Global cross-sectional' },
+    { label:'Tier 1 Categories', value:s.tier1Count, sub:'Highest data quality' },
+    { label:'Manufacturers', value:fmt(s.totalManufacturers), sub:'Unique OEM brands' },
+    { label:'Condition Effect', value:(Math.exp(s.gammaCondition * 0.5) * 100 - 100).toFixed(1) + '%', sub:'New vs Used premium' },
+  ];
+
+  const kpiRow = document.getElementById('kpi-row');
+  kpiRow.innerHTML = kpis.map(k => `
+    <div class="kpi">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>
+  `).join('');
+
+  // Source donut
+  const srcLabels = Object.keys(s.sources);
+  const srcValues = Object.values(s.sources);
+  new Chart(document.getElementById('chart-sources'), {
+    type: 'doughnut',
+    data: {
+      labels: srcLabels,
+      datasets: [{ data: srcValues, backgroundColor:['#0057b8','#1a8754','#b8860b'], borderWidth:0, borderRadius:4 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{ font:{size:12}, padding:16 } } } }
+  });
+
+  // Tier bar
+  const tierCounts = {};
+  DATA.liquidity.forEach(c => { tierCounts[c.tier] = (tierCounts[c.tier]||0) + 1; });
+  const tierOrder = ['Tier1_Liquid','Tier2_Rich','Tier3_Moderate','Tier4_Thin','Tier5_Sparse'];
+  const tierLabels = ['Liquid','Rich','Moderate','Thin','Sparse'];
+  const tierColors = ['#1e40af','#166534','#92400e','#991b1b','#6b7280'];
+  new Chart(document.getElementById('chart-tiers'), {
+    type: 'bar',
+    data: {
+      labels: tierLabels,
+      datasets: [{
+        data: tierOrder.map(t => tierCounts[t]||0),
+        backgroundColor: tierColors.map(c => c + '22'),
+        borderColor: tierColors,
+        borderWidth: 2,
+        borderRadius: 6,
+      }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#f0f0f0'}}, x:{grid:{display:false}} } }
+  });
+
+  // Category effects horizontal bar
+  const catEffects = s.topCategoryEffects.slice(0, 10);
+  new Chart(document.getElementById('chart-cat-effects'), {
+    type: 'bar',
+    data: {
+      labels: catEffects.map(e => truncate(e.category, 40)),
+      datasets: [{
+        data: catEffects.map(e => e.effect),
+        backgroundColor: '#0057b822',
+        borderColor: '#0057b8',
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{title:{display:true,text:'Log-price effect (α)',font:{size:11}}, grid:{color:'#f0f0f0'}}, y:{ticks:{font:{size:10}}, grid:{display:false}} }
+    }
+  });
+
+  // Manufacturer effects
+  const mfgEffects = s.topMfgEffects.slice(0, 10);
+  new Chart(document.getElementById('chart-mfg-effects'), {
+    type: 'bar',
+    data: {
+      labels: mfgEffects.map(e => e.manufacturer),
+      datasets: [{
+        data: mfgEffects.map(e => e.effect),
+        backgroundColor: mfgEffects.map(e => e.effect >= 0 ? '#1a875422' : '#c0392b22'),
+        borderColor: mfgEffects.map(e => e.effect >= 0 ? '#1a8754' : '#c0392b'),
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ x:{title:{display:true,text:'Brand premium/discount (β)',font:{size:11}}, grid:{color:'#f0f0f0'}}, y:{ticks:{font:{size:10}}, grid:{display:false}} }
+    }
+  });
+
+  initLiquidity();
+  initPricing();
+  initTimeSeries();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  LIQUIDITY VIEW
+// ═══════════════════════════════════════════════════════════════════
+function initLiquidity() {
+  renderLiquidityTable(DATA.liquidity);
+
+  // Distribution histogram
+  const scores = DATA.liquidity.map(c => c.liquidityScore);
+  const bins = makeBins(scores, 20);
+  new Chart(document.getElementById('chart-liq-dist'), {
+    type:'bar',
+    data:{
+      labels: bins.labels,
+      datasets:[{ data:bins.counts, backgroundColor:'#0057b844', borderColor:'#0057b8', borderWidth:1.5, borderRadius:4 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true,title:{display:true,text:'Count',font:{size:11}},grid:{color:'#f0f0f0'}}, x:{title:{display:true,text:'Liquidity Score',font:{size:11}},grid:{display:false}} } }
+  });
+
+  // Depth vs Score scatter
+  const tierColorMap = { Tier1_Liquid:'#1e40af', Tier2_Rich:'#166534', Tier3_Moderate:'#b8860b', Tier4_Thin:'#c0392b', Tier5_Sparse:'#9ca3af' };
+  new Chart(document.getElementById('chart-depth-score'), {
+    type:'scatter',
+    data:{
+      datasets: Object.keys(tierColorMap).map(tier => ({
+        label: tier.replace('_',' '),
+        data: DATA.liquidity.filter(c=>c.tier===tier).map(c => ({x:c.n, y:c.liquidityScore})),
+        backgroundColor: tierColorMap[tier] + '88',
+        borderColor: tierColorMap[tier],
+        borderWidth: 1,
+        pointRadius: 5,
+      }))
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{type:'logarithmic',title:{display:true,text:'Observations (log)',font:{size:11}},grid:{color:'#f0f0f0'}}, y:{title:{display:true,text:'Liquidity Score',font:{size:11}},grid:{color:'#f0f0f0'}} },
+      plugins:{ legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}} }
+    }
+  });
+}
+
+function renderLiquidityTable(data) {
+  const tbody = document.getElementById('liq-tbody');
+  const dimKeys = ['depthR','sourceEntropyR','temporalDensityR','priceSNRR','mfgDiversityR','conditionCoverageR'];
+  const dimLabels = ['Depth','Entropy','Temporal','SNR','Mfg','Cond'];
+  const dimColors = ['#1e40af','#0057b8','#2563eb','#1a8754','#b8860b','#7c3aed'];
+
+  tbody.innerHTML = data.map(c => {
+    const tierClass = c.tier.includes('1') ? 'tier-1' : c.tier.includes('2') ? 'tier-2' : c.tier.includes('3') ? 'tier-3' : c.tier.includes('4') ? 'tier-4' : 'tier-5';
+    const heatmap = dimKeys.map((k,i) => {
+      const v = c[k];
+      const h = Math.round(v * 26) + 2;
+      const opacity = 0.3 + v * 0.7;
+      return `<div class="heatmap-cell" style="height:${h}px;background:${dimColors[i]};opacity:${opacity}" data-label="${dimLabels[i]}: ${(v*100).toFixed(0)}%"></div>`;
+    }).join('');
+
+    return `<tr data-tier="${c.tier}">
+      <td style="font-weight:500">${truncate(c.category, 55)}</td>
+      <td class="text-right text-mono">${fmt(c.n)}</td>
+      <td><span class="tier ${tierClass}">${c.tier.replace('Tier','T').replace('_',' ')}</span></td>
+      <td class="text-right">
+        <span class="text-mono" style="font-weight:600">${c.liquidityScore.toFixed(3)}</span>
+        <div class="score-bar"><div class="score-bar-fill" style="width:${c.liquidityScore / 0.3 * 100}%"></div></div>
+      </td>
+      <td><div class="heatmap-bar">${heatmap}</div></td>
+      <td class="text-right text-mono">${c.depth.toFixed(1)}</td>
+      <td class="text-right text-mono">${c.sourceEntropy.toFixed(2)}</td>
+      <td class="text-right text-mono">${c.temporalDensity.toFixed(2)}</td>
+      <td class="text-right text-mono">${c.priceSNR.toFixed(1)}</td>
+      <td class="text-right text-mono">${c.mfgDiversity.toFixed(2)}</td>
+      <td class="text-right text-mono">${c.conditionCoverage.toFixed(2)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterLiquidityTable() {
+  const tier = document.getElementById('tier-filter').value;
+  const filtered = tier === 'all' ? DATA.liquidity : DATA.liquidity.filter(c => c.tier === tier);
+  renderLiquidityTable(filtered);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  PRICING EXPLORER
+// ═══════════════════════════════════════════════════════════════════
+let scatterChart = null, errorChart = null;
+
+function initPricing() {
+  const sel = document.getElementById('cat-select');
+  // Get unique categories from items, ordered by liquidity
+  const catOrder = DATA.liquidity.map(c => c.category);
+  const itemCats = [...new Set(DATA.items.map(i => i.category))];
+  const ordered = catOrder.filter(c => itemCats.includes(c));
+
+  sel.innerHTML = '<option value="">— Select a category —</option>' +
+    ordered.map(c => {
+      const liq = DATA.liquidity.find(l => l.category === c);
+      const tierTag = liq ? ` [${liq.tier.replace('_',' ')}]` : '';
+      return `<option value="${c}">${truncate(c,70)}${tierTag}</option>`;
+    }).join('');
+}
+
+function loadCategoryItems() {
+  const cat = document.getElementById('cat-select').value;
+  if (!cat) return;
+
+  const items = DATA.items.filter(i => i.category === cat);
+  const liq = DATA.liquidity.find(l => l.category === cat);
+
+  document.getElementById('item-count').textContent = `${items.length} items shown`;
+
+  // Category KPIs
+  const prices = items.map(i => i.actualPrice).filter(p => p > 0);
+  const modelPrices = items.map(i => i.modelPrice).filter(p => p > 0);
+  const errors = items.filter(i => i.actualPrice > 0 && i.modelPrice > 0).map(i => Math.abs(i.actualPrice - i.modelPrice) / i.actualPrice);
+  const mape = errors.length ? (errors.reduce((a,b)=>a+b,0)/errors.length*100) : 0;
+
+  const kpiRow = document.getElementById('cat-kpi-row');
+  kpiRow.innerHTML = [
+    { label:'Observations', value:fmt(liq ? liq.n : items.length), sub:'Total in universe' },
+    { label:'Liquidity Score', value:liq ? liq.liquidityScore.toFixed(3) : '—', sub:liq ? liq.tier.replace('_',' ') : '' },
+    { label:'Median Price', value:'$'+fmt(median(prices)), sub:'Market observed' },
+    { label:'Model MAPE', value:mape.toFixed(1)+'%', sub:'Median abs % error' },
+  ].map(k => `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-value">${k.value}</div><div class="kpi-sub">${k.sub}</div></div>`).join('');
+
+  // Items table
+  const tbody = document.getElementById('items-tbody');
+  tbody.innerHTML = items.map(item => {
+    const delta = item.actualPrice > 0 ? ((item.modelPrice - item.actualPrice) / item.actualPrice * 100) : 0;
+    const deltaColor = Math.abs(delta) < 20 ? 'var(--green)' : Math.abs(delta) < 50 ? 'var(--amber)' : 'var(--red)';
+    return `<tr>
+      <td style="font-weight:500">${truncate(item.title, 50)}</td>
+      <td>${truncate(item.manufacturer, 20)}</td>
+      <td>${item.condition || '—'}</td>
+      <td>${item.source}</td>
+      <td class="text-right"><span class="price-pill actual">$${fmt(item.actualPrice)}</span></td>
+      <td class="text-right"><span class="price-pill model">$${fmt(Math.round(item.modelPrice))}</span></td>
+      <td class="text-right text-mono" style="color:${deltaColor};font-weight:600">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}%</td>
+      <td class="text-mono" style="color:var(--ink-muted)">${item.date || '—'}</td>
+    </tr>`;
+  }).join('');
+
+  // Scatter: actual vs model
+  if (scatterChart) scatterChart.destroy();
+  const scatterData = items.filter(i => i.actualPrice > 0 && i.modelPrice > 0).map(i => ({x:i.actualPrice, y:i.modelPrice}));
+  const allVals = scatterData.flatMap(d => [d.x, d.y]);
+  const mn = Math.min(...allVals), mx = Math.max(...allVals);
+  scatterChart = new Chart(document.getElementById('chart-scatter'), {
+    type:'scatter',
+    data:{
+      datasets:[
+        { label:'Assets', data:scatterData, backgroundColor:'#0057b866', borderColor:'#0057b8', borderWidth:1, pointRadius:5 },
+        { label:'Perfect fit', data:[{x:mn,y:mn},{x:mx,y:mx}], type:'line', borderColor:'#aaa', borderDash:[4,4], borderWidth:1.5, pointRadius:0 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ x:{type:'logarithmic',title:{display:true,text:'Actual Price ($)',font:{size:11}},grid:{color:'#f0f0f0'}}, y:{type:'logarithmic',title:{display:true,text:'Model Price ($)',font:{size:11}},grid:{color:'#f0f0f0'}} },
+      plugins:{ legend:{display:false} }
+    }
+  });
+
+  // Error histogram
+  if (errorChart) errorChart.destroy();
+  const pctErrors = items.filter(i=>i.actualPrice>0&&i.modelPrice>0).map(i => (i.modelPrice-i.actualPrice)/i.actualPrice*100);
+  const errBins = makeBins(pctErrors, 15);
+  errorChart = new Chart(document.getElementById('chart-error-hist'), {
+    type:'bar',
+    data:{
+      labels:errBins.labels,
+      datasets:[{data:errBins.counts, backgroundColor:errBins.labels.map(l => {const v=parseFloat(l);return Math.abs(v)<25?'#1a875444':'#c0392b33';}), borderColor:errBins.labels.map(l => {const v=parseFloat(l);return Math.abs(v)<25?'#1a8754':'#c0392b';}), borderWidth:1.5, borderRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'Count',font:{size:11}},grid:{color:'#f0f0f0'}},x:{title:{display:true,text:'Model Error (%)',font:{size:11}},grid:{display:false}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  TIME SERIES
+// ═══════════════════════════════════════════════════════════════════
+let tsChart = null, tsVolChart = null;
+
+function initTimeSeries() {
+  const sel = document.getElementById('ts-select');
+  sel.innerHTML = '<option value="">— Select a category —</option>' +
+    DATA.timeseries.map((ts,i) => `<option value="${i}">${truncate(ts.category,70)} [${ts.tier.replace('_',' ')}]</option>`).join('');
+}
+
+function loadTimeSeries() {
+  const idx = document.getElementById('ts-select').value;
+  if (idx === '') return;
+
+  const ts = DATA.timeseries[parseInt(idx)];
+  document.getElementById('ts-title').textContent = `Kalman Fair Value: ${truncate(ts.category, 60)}`;
+
+  const dates = ts.dates;
+  const raw = ts.rawPrices.map(p => p < 0 ? null : p);
+  const kalman = ts.kalmanPrices;
+  const ciL = ts.ci95Lower;
+  const ciU = ts.ci95Upper;
+
+  if (tsChart) tsChart.destroy();
+  tsChart = new Chart(document.getElementById('chart-ts'), {
+    type:'line',
+    data:{
+      labels: dates,
+      datasets:[
+        { label:'95% CI Upper', data:ciU, borderColor:'transparent', backgroundColor:'#0057b818', fill:'+1', pointRadius:0, tension:0.3 },
+        { label:'95% CI Lower', data:ciL, borderColor:'transparent', backgroundColor:'#0057b818', fill:false, pointRadius:0, tension:0.3 },
+        { label:'Kalman FMV', data:kalman, borderColor:'#0057b8', borderWidth:2.5, pointRadius:0, tension:0.3, fill:false },
+        { label:'Observed Price', data:raw, borderColor:'transparent', backgroundColor:'#1a875488', pointRadius:4, pointStyle:'circle', showLine:false },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      scales:{ y:{title:{display:true,text:'Price ($)',font:{size:11}},grid:{color:'#f0f0f0'}}, x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}} },
+      plugins:{ legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:16}} },
+      interaction:{mode:'index',intersect:false}
+    }
+  });
+
+  if (tsVolChart) tsVolChart.destroy();
+  tsVolChart = new Chart(document.getElementById('chart-ts-vol'), {
+    type:'bar',
+    data:{
+      labels:dates,
+      datasets:[{data:ts.counts, backgroundColor:'#0057b833', borderColor:'#0057b8', borderWidth:1, borderRadius:2}]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{beginAtZero:true,title:{display:true,text:'Transactions',font:{size:11}},grid:{color:'#f0f0f0'}},x:{grid:{display:false},ticks:{maxTicksLimit:12,font:{size:10}}}}
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════════════════
+function fmt(n) { return Number(n).toLocaleString('en-US', {maximumFractionDigits:0}); }
+function truncate(s, n) { return s.length > n ? s.slice(0, n-1) + '…' : s; }
+function median(arr) { if (!arr.length) return 0; const s=[...arr].sort((a,b)=>a-b); const m=Math.floor(s.length/2); return s.length%2 ? s[m] : (s[m-1]+s[m])/2; }
+
+function makeBins(values, nBins) {
+  if (!values.length) return {labels:[], counts:[]};
+  const mn = Math.min(...values), mx = Math.max(...values);
+  const w = (mx - mn) / nBins || 1;
+  const counts = new Array(nBins).fill(0);
+  const labels = [];
+  for (let i = 0; i < nBins; i++) {
+    labels.push((mn + w * (i + 0.5)).toFixed(2));
+    for (const v of values) {
+      if (v >= mn + w*i && (i === nBins-1 ? v <= mn + w*(i+1) : v < mn + w*(i+1))) counts[i]++;
+    }
+  }
+  return {labels, counts};
+}
+
+// ── BOOT ──
+loadData();
+</script>
+</body>
+</html>
